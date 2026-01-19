@@ -1,15 +1,26 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import psycopg2
 import os
 
 app = FastAPI()
 
-# ✅ ROOT ENDPOINT (ADD HERE)
+# Enable CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Root endpoint
 @app.get("/")
 def root():
     return {"status": "Backend is live"}
 
+# Input model
 class HealthInput(BaseModel):
     age: int
     bmi: float
@@ -18,13 +29,19 @@ class HealthInput(BaseModel):
     stress_level: int
     screen_time: float
 
-def calculate_risk(data):
+# AI risk calculation
+def calculate_risk(data: HealthInput) -> str:
     score = 0
-    if data.sleep_hours < 6: score += 2
-    if data.activity_minutes < 30: score += 2
-    if data.stress_level > 6: score += 2
-    if data.screen_time > 6: score += 2
-    if data.bmi > 25: score += 2
+    if data.sleep_hours < 6:
+        score += 2
+    if data.activity_minutes < 30:
+        score += 2
+    if data.stress_level > 6:
+        score += 2
+    if data.screen_time > 6:
+        score += 2
+    if data.bmi > 25:
+        score += 2
 
     if score <= 3:
         return "Low"
@@ -33,18 +50,18 @@ def calculate_risk(data):
     else:
         return "High"
 
+# Main endpoint
 @app.post("/assess")
 def assess_health(data: HealthInput):
     risk = calculate_risk(data)
 
-recommendation = (
+    recommendation = (
         "Maintain healthy habits"
         if risk == "Low"
         else "Improve sleep, physical activity, and stress management"
     )
 
     try:
-        # Connect to Supabase (PostgreSQL)
         conn = psycopg2.connect(os.getenv("DATABASE_URL"))
         cur = conn.cursor()
 
