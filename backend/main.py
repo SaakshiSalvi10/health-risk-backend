@@ -5,6 +5,11 @@ import os
 
 app = FastAPI()
 
+# ✅ ROOT ENDPOINT (ADD HERE)
+@app.get("/")
+def root():
+    return {"status": "Backend is live"}
+
 class HealthInput(BaseModel):
     age: int
     bmi: float
@@ -48,3 +53,4 @@ def assess_health(data: HealthInput):
         "risk_level": risk,
         "recommendation": "Maintain healthy habits" if risk=="Low" else "Improve lifestyle balance"
     }
+
