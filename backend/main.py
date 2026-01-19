@@ -37,20 +37,45 @@ def calculate_risk(data):
 def assess_health(data: HealthInput):
     risk = calculate_risk(data)
 
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
-    cur = conn.cursor()
-
-    cur.execute(
-        "INSERT INTO health_checkins(age,bmi,sleep_hours,activity_minutes,stress_level,screen_time,risk_level) VALUES (%s,%s,%s,%s,%s,%s,%s)",
-        (data.age, data.bmi, data.sleep_hours, data.activity_minutes, data.stress_level, data.screen_time, risk)
+recommendation = (
+        "Maintain healthy habits"
+        if risk == "Low"
+        else "Improve sleep, physical activity, and stress management"
     )
 
-    conn.commit()
-    cur.close()
-    conn.close()
+    try:
+        # Connect to Supabase (PostgreSQL)
+        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        cur = conn.cursor()
+
+        cur.execute(
+            """
+            INSERT INTO health_checkins
+            (age, bmi, sleep_hours, activity_minutes, stress_level, screen_time, risk_level)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                data.age,
+                data.bmi,
+                data.sleep_hours,
+                data.activity_minutes,
+                data.stress_level,
+                data.screen_time,
+                risk,
+            )
+        )
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
+    except Exception as e:
+        return {
+            "error": "Database insertion failed",
+            "details": str(e)
+        }
 
     return {
         "risk_level": risk,
-        "recommendation": "Maintain healthy habits" if risk=="Low" else "Improve lifestyle balance"
+        "recommendation": recommendation
     }
-
