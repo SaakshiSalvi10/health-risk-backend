@@ -55,21 +55,18 @@ def calculate_risk(data: HealthInput) -> str:
 def assess_health(data: HealthInput):
     risk = calculate_risk(data)
 
-    recommendation = (
-        "Maintain healthy habits"
-        if risk == "Low"
-        else "Improve sleep, physical activity, and stress management"
-    )
-
     try:
-        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        conn = psycopg2.connect(
+            os.getenv("DATABASE_URL"),
+            connect_timeout=5
+        )
         cur = conn.cursor()
 
         cur.execute(
             """
             INSERT INTO health_checkins
             (age, bmi, sleep_hours, activity_minutes, stress_level, screen_time, risk_level)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s,%s,%s,%s,%s,%s,%s)
             """,
             (
                 data.age,
@@ -78,7 +75,7 @@ def assess_health(data: HealthInput):
                 data.activity_minutes,
                 data.stress_level,
                 data.screen_time,
-                risk,
+                risk
             )
         )
 
@@ -87,12 +84,13 @@ def assess_health(data: HealthInput):
         conn.close()
 
     except Exception as e:
-        return {
-            "error": "Database insertion failed",
-            "details": str(e)
-        }
+        print("DB Error:", e)
 
     return {
         "risk_level": risk,
-        "recommendation": recommendation
+        "recommendation": (
+            "Maintain healthy habits"
+            if risk == "Low"
+            else "Improve lifestyle balance"
+        )
     }
